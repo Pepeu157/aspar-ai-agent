@@ -1,5 +1,6 @@
 import re
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -70,17 +71,31 @@ def test_historical_and_negative_mention_is_not_positive_request() -> None:
     assert historical["analysis"]["extracted_fields"]["suggested_time"] is None
 
 
-def test_negated_request_variants_are_not_classified_as_positive() -> None:
-    examples = (
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Não solicito audiência neste momento.",
         "Não gostaria de solicitar uma audiência neste momento.",
         "Não gostaríamos de solicitar uma reunião.",
         "Não pretendemos agendar audiência.",
         "Não queremos marcar uma reunião.",
         "Não desejo solicitar audiência.",
+    ],
+)
+def test_negated_request_variants_are_not_classified_as_positive(message: str) -> None:
+    body = create(message).json()
+    assert body["classification"] == "ambiguous"
+
+
+def test_affirmative_request_still_classifies_as_audience_request() -> None:
+    examples = (
+        "Solicito audiência para tratar de energia.",
+        "Gostaria de solicitar uma audiência.",
+        "Pretendemos agendar uma reunião.",
+        "Queremos marcar uma reunião.",
     )
     for message in examples:
-        body = create(message).json()
-        assert body["classification"] == "ambiguous", message
+        assert create(message).json()["classification"] == "audience_request", message
 
 
 def test_request_for_information_about_past_audience_is_not_meeting_request() -> None:
