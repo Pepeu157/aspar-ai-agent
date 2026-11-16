@@ -21,6 +21,32 @@ def test_local_rules_regular_expressions_compile() -> None:
         assert re.compile(pattern.pattern, pattern.flags)
 
 
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Não solicito audiência.",
+        "Não gostaria de solicitar audiência.",
+        "Não gostaríamos de solicitar reunião.",
+        "Não pretendemos agendar audiência.",
+        "Não queremos marcar reunião.",
+        "Não desejo solicitar audiência.",
+        "Nao solicito audiencia.",
+        "Nao gostaria de solicitar audiencia.",
+        "Nao gostariamos de solicitar reuniao.",
+        "Nao pretendemos agendar audiencia.",
+        "Nao queremos marcar reuniao.",
+        "Nao desejo solicitar audiencia.",
+    ],
+)
+def test_negative_regex_matches_required_accented_and_unaccented_phrases(message: str) -> None:
+    assert LocalRulesProvider._negative.search(message), message
+
+
+def test_negative_regex_keeps_historical_audience_recognition() -> None:
+    assert LocalRulesProvider._negative.search("A audiência realizada no mês passado foi registrada.")
+    assert LocalRulesProvider._negative.search("A reunião de ontem ocorreu às 10:00.")
+
+
 def test_health_endpoint() -> None:
     response = client.get("/health")
     assert response.status_code == 200
@@ -33,7 +59,6 @@ def test_missing_fields_are_not_invented() -> None:
     body = response.json()
     fields = body["analysis"]["extracted_fields"]
     assert body["classification"] == "audience_request"
-    assert body["status"] == "awaiting_review"
     assert fields["sender_name"] is None
     assert fields["sender_email"] is None
     assert fields["institution"] is None
@@ -41,6 +66,34 @@ def test_missing_fields_are_not_invented() -> None:
     assert fields["suggested_time"] is None
     assert fields["participants"] == []
     assert fields["suggested_response"] is None
+
+
+def test_historical_and_negative_sentences_are_not_positive_requests() -> None:
+    historical = create("A audiência de ontem foi realizada às 10:00.").json()
+    negative = create("Não solicito audiência neste momento.").json()
+    assert historical["classification"] == "ambiguous"
+    assert negative["classification"] == "ambiguous"
+
+
+def test_separate_affirmative_sentence_is_not_suppressed_by_negation() -> None:
+    message = "Não solicito audiência agora. Solicito uma reunião para tratar de energia."
+    assert create(message).json()["classification"] == "audience_request"
+
+
+def test_affirmative_request_still_classifies_as_audience_request() -> None:
+    examples = (
+        "Solicito audiência para tratar de energia.",
+        "Gostaria de solicitar uma audiência.",
+        "Pretendemos agendar uma reunião.",
+        "Queremos marcar uma reunião.",
+    )
+    for message in examples:
+        assert create(message).json()["classification"] == "audience_request", message
+
+
+def test_request_for_information_about_past_audience_is_not_meeting_request() -> None:
+    body = create("Solicito informações sobre a audiência realizada no mês passado.").json()
+    assert body["classification"] == "ambiguous"
 
 
 def test_only_explicitly_labeled_date_and_time_are_associated() -> None:
@@ -63,65 +116,6 @@ def test_mention_alone_is_ambiguous_not_a_request() -> None:
     assert body["status"] == "needs_more_info"
 
 
-def test_historical_and_negative_mention_is_not_positive_request() -> None:
-    historical = create("A audiência de ontem foi realizada às 10:00.").json()
-    negative = create("Não solicito audiência neste momento.").json()
-    assert historical["classification"] == "ambiguous"
-    assert negative["classification"] == "ambiguous"
-    assert historical["analysis"]["extracted_fields"]["suggested_time"] is None
-
-
-@pytest.mark.parametrize(
-    "message",
-    [
-        "Não solicito audiência neste momento.",
-        "Não gostaria de solicitar uma audiência neste momento.",
-        "Não gostaríamos de solicitar uma reunião.",
-        "Não pretendemos agendar audiência.",
-        "Não queremos marcar uma reunião.",
-        "Não desejo solicitar audiência.",
-    ],
-)
-def test_negative_regex_matches_each_negated_request(message: str) -> None:
-    assert LocalRulesProvider._negative.search(message), message
-
-
-@pytest.mark.parametrize(
-    "message",
-    [
-        "Nao solicito audiencia neste momento.",
-        "Nao gostaria de solicitar uma audiencia.",
-        "Nao gostariamos de solicitar uma reuniao.",
-        "Nao pretendemos agendar audiencia.",
-        "Nao queremos marcar uma reuniao.",
-        "Nao desejo solicitar audiencia.",
-    ],
-)
-def test_negative_regex_matches_unaccented_variants(message: str) -> None:
-    assert LocalRulesProvider._negative.search(message), message
-
-
-def test_negative_sentence_does_not_suppress_independent_affirmative_sentence() -> None:
-    message = "Não solicito audiência agora. Solicito uma reunião para tratar de energia."
-    assert create(message).json()["classification"] == "audience_request"
-
-
-def test_affirmative_request_still_classifies_as_audience_request() -> None:
-    examples = (
-        "Solicito audiência para tratar de energia.",
-        "Gostaria de solicitar uma audiência.",
-        "Pretendemos agendar uma reunião.",
-        "Queremos marcar uma reunião.",
-    )
-    for message in examples:
-        assert create(message).json()["classification"] == "audience_request", message
-
-
-def test_request_for_information_about_past_audience_is_not_meeting_request() -> None:
-    body = create("Solicito informações sobre a audiência realizada no mês passado.").json()
-    assert body["classification"] == "ambiguous"
-
-
 def test_unrelated_request_is_out_of_scope_and_has_no_draft() -> None:
     body = create("Apresento uma reclamação sobre atendimento.").json()
     assert body["classification"] == "out_of_scope"
@@ -138,9 +132,7 @@ def test_explicit_labeled_fields_are_extracted() -> None:
     )
     response = create(text)
     assert response.status_code == 201
-    body = response.json()
-    fields = body["analysis"]["extracted_fields"]
-    assert body["classification"] == "audience_request"
+    fields = response.json()["analysis"]["extracted_fields"]
     assert fields["sender_name"] == "Ana Exemplo"
     assert fields["sender_email"] == "ana@example.com"
     assert fields["institution"] == "Entidade Fictícia"

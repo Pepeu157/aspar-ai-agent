@@ -40,10 +40,14 @@ class LocalRulesProvider:
             re.IGNORECASE,
         ),
     )
+    # Negation alternatives are explicit so each grammatical form is anchored after "não".
+    # The second branch preserves historical/past-audience references.
     _negative = re.compile(
-        r"\b n[aã]o\s+(?:(?:gostaria|gostar[ií]amos)\s+de\s+)?"
-        r"(?:solicito|solicitamos|solicita|pretendo|pretendemos|quero|queremos|desejo|desejamos)"
-        r"(?:\s+de)?(?:\s+(?:solicitar|agendar|marcar|requerer))?\b"
+        r"\bn[aã]o\s+(?:"
+        r"(?:gostaria|gostar[ií]amos)\s+de\s+solicitar"
+        r"|(?:pretendo|pretendemos|quero|queremos|desejo|desejamos)\s+(?:de\s+)?(?:solicitar|agendar|marcar|requerer)"
+        r"|(?:solicito|solicitamos|solicita|requeiro|requeremos|pe[cç]o|pedimos)"
+        r")\b"
         r"|\b(?:audi[eê]ncia|reuni[aã]o)\s+(?:de ontem|ocorreu|ocorrida|realizada|foi realizada|j[aá] realizada)\b",
         re.IGNORECASE,
     )
@@ -120,8 +124,8 @@ class LocalRulesProvider:
             if participant_value else []
         )
         sentences = [part.strip() for part in re.split(r"[.!?\n]+", text) if part.strip()]
-        # Evaluate negation before positive intent for each sentence, without letting a negation
-        # in one sentence suppress a separate affirmative request in another.
+        # Evaluate negation before positive intent per sentence, so a separate affirmative
+        # sentence can still qualify as an audience request.
         positive_intent = any(
             not self._negative.search(sentence)
             and any(pattern.search(sentence) for pattern in self._positive_request_patterns)
@@ -143,7 +147,6 @@ class LocalRulesProvider:
             classification = RequestClassification.OUT_OF_SCOPE
             warnings = ["Não foi identificada intenção explícita de solicitar audiência."]
 
-        # Do not associate proposed dates/times unless the request itself is explicit.
         fields = ExtractedFields(
             sender_name=sender_name,
             sender_email=sender_email,
