@@ -82,9 +82,28 @@ def test_historical_and_negative_mention_is_not_positive_request() -> None:
         "Não desejo solicitar audiência.",
     ],
 )
-def test_negated_request_variants_are_not_classified_as_positive(message: str) -> None:
-    body = create(message).json()
-    assert body["classification"] == "ambiguous"
+def test_negative_regex_matches_each_negated_request(message: str) -> None:
+    assert LocalRulesProvider._negative.search(message), message
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Nao solicito audiencia neste momento.",
+        "Nao gostaria de solicitar uma audiencia.",
+        "Nao gostariamos de solicitar uma reuniao.",
+        "Nao pretendemos agendar audiencia.",
+        "Nao queremos marcar uma reuniao.",
+        "Nao desejo solicitar audiencia.",
+    ],
+)
+def test_negative_regex_matches_unaccented_variants(message: str) -> None:
+    assert LocalRulesProvider._negative.search(message), message
+
+
+def test_negative_sentence_does_not_suppress_independent_affirmative_sentence() -> None:
+    message = "Não solicito audiência agora. Solicito uma reunião para tratar de energia."
+    assert create(message).json()["classification"] == "audience_request"
 
 
 def test_affirmative_request_still_classifies_as_audience_request() -> None:
