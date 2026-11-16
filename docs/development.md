@@ -6,7 +6,7 @@ Python 3.11+, Node.js 20+, npm e Git. Não é necessário Microsoft 365, banco o
 
 ## Windows PowerShell
 
-Na raiz do repositório:
+A partir da raiz:
 
 ```powershell
 py -3.11 -m venv backend\.venv
@@ -16,7 +16,7 @@ Copy-Item .env.example .env
 .\backend\.venv\Scripts\python.exe -m uvicorn app.main:app --app-dir backend --reload --host 127.0.0.1 --port 8000
 ```
 
-Em outro terminal para iniciar o frontend:
+Em um segundo terminal:
 
 ```powershell
 Set-Location frontend
@@ -24,13 +24,13 @@ npm install
 npm run dev
 ```
 
-Testes de backend, a partir da raiz:
+Testes backend, executados na raiz:
 
 ```powershell
 .\backend\.venv\Scripts\python.exe -m pytest -c pytest.ini -q
 ```
 
-Build do frontend:
+Build frontend:
 
 ```powershell
 Set-Location frontend
@@ -50,6 +50,6 @@ Em outro terminal: `cd frontend && npm install && npm run dev`. Testes: `backend
 
 ## Configuração e segurança
 
-Pydantic Settings lê `.env` na raiz e variáveis de processo; variáveis do processo prevalecem. `.env` não é versionado. A API atual usa apenas análise local e armazenamento em memória. Utilize conteúdo fictício. Não há conexões ou credenciais externas.
+Pydantic Settings lê `.env` na raiz e variáveis de processo; variáveis do processo prevalecem. `.env` não é versionado. A API atual usa regras locais e armazenamento em memória. Utilize apenas mensagens sintéticas. Nenhum acesso externo ou credencial é necessário.
 
-API local: `http://127.0.0.1:8000`; OpenAPI: `/docs`; painel: `http://localhost:5173`.
+API local: `http://127.0.0.1:8000`; OpenAPI: `http://127.0.0.1:8000/docs`; painel: `http://localhost:5173`.

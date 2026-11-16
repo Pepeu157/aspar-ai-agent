@@ -41,8 +41,15 @@ class LocalRulesProvider:
         ),
     )
     _negative = re.compile(
-        r"\b(?:n[aã]o\s+(?:solicito|solicitamos|solicita|pretendo|pretendemos|quero|queremos|desejo|desejamos)"
+        r"\b(?:n[aã]o\s+(?:(?:gostaria|gostar[ií]amos)\s+de\s+solicitar|"
+        r"solicito|solicitamos|solicita|pretendo|pretendemos|quero|queremos|desejo|desejamos))"
         r"|(?:audi[eê]ncia|reuni[aã]o)\s+(?:de ontem|ocorreu|ocorrida|realizada|foi realizada|j[aá] realizada))\b",
+        re.IGNORECASE,
+    )
+    _informational_request = re.compile(
+        r"\b(?:solicito|solicitamos|pe[cç]o|pedimos|requeiro|requeremos)\b"
+        r".{0,80}\b(?:informa[cç][oõ]es?|esclarecimentos?|detalhes|c[oó]pia|dados)\b"
+        r".{0,100}\b(?:audi[eê]ncia|reuni[aã]o)\b",
         re.IGNORECASE,
     )
     _non_scope = re.compile(
@@ -72,6 +79,7 @@ class LocalRulesProvider:
         if not match:
             return None
         from datetime import date
+
         raw = match.group(1)
         try:
             parsed = date.fromisoformat(raw) if "-" in raw else date.fromisoformat(
@@ -114,6 +122,7 @@ class LocalRulesProvider:
         positive_intent = any(
             any(pattern.search(sentence) for pattern in self._positive_request_patterns)
             and not self._negative.search(sentence)
+            and not self._informational_request.search(sentence)
             for sentence in sentences
         )
         mentioned = bool(self._audience.search(text))

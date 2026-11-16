@@ -1,20 +1,17 @@
 # ASPAR AI Agent
 
-Base local de aplicação para apoiar o tratamento de solicitações de audiências, sempre com revisão humana. Nesta etapa não há acesso ao Microsoft 365, integrações externas ou envio de e-mails.
+Base local de aplicação para apoiar o tratamento de solicitações de audiências, sempre com revisão humana. Não há acesso ao Microsoft 365, integrações externas ou envio de e-mails.
 
-## O que existe nesta fundação
+## Componentes
 
 - API FastAPI para criar, listar e consultar solicitações;
-- análise determinística local, conservadora e sem provedor de modelo;
-- extração somente de informações explicitamente identificadas;
-- campos ausentes ou incertos como `null` e listas vazias;
+- regras determinísticas locais, sem provedor de modelo;
+- extração conservadora com campos ausentes como `null`;
 - armazenamento volátil em memória;
-- frontend React/TypeScript que consulta a API e não mostra registros de demonstração;
-- testes automatizados para validação e cenários de escopo.
+- frontend React/TypeScript que consome a API local e não contém registros de demonstração;
+- testes automatizados para validação e escopo.
 
-## Limitações
-
-As regras locais não são um modelo de IA e não oferecem interpretação semântica ampla. Não geram uma minuta. O armazenamento em memória é perdido ao encerrar o processo e não é apropriado para produção. Utilize exclusivamente mensagens sintéticas. Nenhum dado institucional ou pessoal real deve ser adicionado.
+A análise é heurística, não um modelo de IA, e pode classificar incorretamente. A aplicação não gera minuta. Use exclusivamente dados fictícios. Registros são perdidos ao reiniciar o backend; não usar em produção.
 
 ## Estrutura
 
@@ -28,9 +25,9 @@ As regras locais não são um modelo de IA e não oferecem interpretação semâ
 └── integrations/
 ```
 
-## Execução
+## Execução local
 
-Veja [`docs/development.md`](docs/development.md) para comandos PowerShell (Windows) e Linux/macOS. API local em `http://127.0.0.1:8000`; OpenAPI em `/docs`; frontend em `http://localhost:5173`.
+Consulte [`docs/development.md`](docs/development.md) para PowerShell e Linux/macOS. API: `http://127.0.0.1:8000` (OpenAPI em `/docs`); frontend: `http://localhost:5173`.
 
 ## Endpoints
 
@@ -39,8 +36,8 @@ Veja [`docs/development.md`](docs/development.md) para comandos PowerShell (Wind
 - `GET /api/v1/requests`
 - `GET /api/v1/requests/{request_id}`
 
-Nenhum endpoint envia e-mail nem acessa caixa postal.
+Nenhum endpoint acessa caixas de e-mail nem envia mensagens. Os registros são armazenados apenas na memória do processo.
 
-## Próximas decisões
+## Limitações e próximos passos
 
-Persistência durável, identidade e autenticação, fluxo completo de revisão/aprovação, política de retenção e eventual modelo de IA dependem de análise e autorização institucional. Microsoft Graph/Outlook, Power Automate, SharePoint e Dataverse continuam opcionais e desativados.
+O fluxo de revisão humana, autenticação, persistência durável e auditoria de produção não está implementado. Qualquer integração ou modelo externo depende de análise e autorização institucional. Microsoft Graph/Outlook, Power Automate, SharePoint e Dataverse permanecem desativados.
