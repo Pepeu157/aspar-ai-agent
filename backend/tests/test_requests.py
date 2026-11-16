@@ -1,12 +1,23 @@
+import re
+
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.services.ai import LocalRulesProvider
 
 client = TestClient(app)
 
 
 def create(text: str):
     return client.post("/api/v1/requests", json={"message_text": text})
+
+
+def test_local_rules_regular_expressions_compile() -> None:
+    provider = LocalRulesProvider()
+    patterns = [provider._audience, provider._negative, provider._informational_request, provider._non_scope]
+    patterns.extend(provider._positive_request_patterns)
+    for pattern in patterns:
+        assert re.compile(pattern.pattern, pattern.flags)
 
 
 def test_health_endpoint() -> None:
@@ -59,9 +70,17 @@ def test_historical_and_negative_mention_is_not_positive_request() -> None:
     assert historical["analysis"]["extracted_fields"]["suggested_time"] is None
 
 
-def test_negated_polite_request_is_not_classified_as_positive() -> None:
-    body = create("Não gostaria de solicitar uma audiência neste momento.").json()
-    assert body["classification"] == "ambiguous"
+def test_negated_request_variants_are_not_classified_as_positive() -> None:
+    examples = (
+        "Não gostaria de solicitar uma audiência neste momento.",
+        "Não gostaríamos de solicitar uma reunião.",
+        "Não pretendemos agendar audiência.",
+        "Não queremos marcar uma reunião.",
+        "Não desejo solicitar audiência.",
+    )
+    for message in examples:
+        body = create(message).json()
+        assert body["classification"] == "ambiguous", message
 
 
 def test_request_for_information_about_past_audience_is_not_meeting_request() -> None:

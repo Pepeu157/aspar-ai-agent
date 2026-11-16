@@ -41,9 +41,9 @@ class LocalRulesProvider:
         ),
     )
     _negative = re.compile(
-        r"\b(?:n[aã]o\s+(?:(?:gostaria|gostar[ií]amos)\s+de\s+solicitar|"
-        r"solicito|solicitamos|solicita|pretendo|pretendemos|quero|queremos|desejo|desejamos))"
-        r"|(?:audi[eê]ncia|reuni[aã]o)\s+(?:de ontem|ocorreu|ocorrida|realizada|foi realizada|j[aá] realizada))\b",
+        r"(?:\b n[aã]o\s+(?:(?:gostaria|gostar[ií]amos)\s+de\s+solicitar|"
+        r"solicito|solicitamos|solicita|pretendo|pretendemos|quero|queremos|desejo|desejamos)\b"
+        r"|\b(?:audi[eê]ncia|reuni[aã]o)\s+(?:de ontem|ocorreu|ocorrida|realizada|foi realizada|j[aá] realizada)\b)",
         re.IGNORECASE,
     )
     _informational_request = re.compile(
